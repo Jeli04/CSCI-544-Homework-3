@@ -36,7 +36,9 @@ class TrainConfig:
     num_layers: int = 1
     dropout: float = 0.33
 
-    # training 
+    case_embed_size: int = 0
+
+    # training
     batch_size: int = 16
     epochs: int = 25
     lr: float = 0.001
@@ -80,7 +82,8 @@ def train_model(model, train_dataloader, test_dataloader, config: TrainConfig, d
             tag_labels = batch['labels'].to(device)
 
             optimizer.zero_grad()
-            logits = model(input_ids).permute(0, 2, 1)  # [batch, num_classes, seq_len]
+            case_ids = batch['case_ids'].to(device) if 'case_ids' in batch else None
+            logits = model(input_ids, case_ids=case_ids).permute(0, 2, 1)  # [batch, num_classes, seq_len]
             loss = loss_fn(logits, tag_labels)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
@@ -103,8 +106,9 @@ def train_model(model, train_dataloader, test_dataloader, config: TrainConfig, d
                 for batch in tqdm(test_dataloader, desc="Validation"):
                     input_ids = batch['input_ids'].to(device)
                     tag_labels = batch['labels'].to(device)
+                    case_ids = batch['case_ids'].to(device) if 'case_ids' in batch else None
 
-                    logits = model(input_ids).permute(0, 2, 1)
+                    logits = model(input_ids, case_ids=case_ids).permute(0, 2, 1)
                     loss = loss_fn(logits, tag_labels)
                     val_loss += loss.item()
                     val_batches += 1
@@ -130,14 +134,17 @@ def train_model(model, train_dataloader, test_dataloader, config: TrainConfig, d
 
 def collate_fn(batch, pad_idx, label_pad_idx):
     inputs = [item[0] for item in batch]
-    labels = [item[2] for item in batch]  # item[1] is char_ids
+    labels = [item[2] for item in batch]
+    case_ids = [item[3] for item in batch]
 
     padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=pad_idx)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=label_pad_idx)
-    
+    padded_case_ids = pad_sequence(case_ids, batch_first=True, padding_value=0)
+
     return {
-        "input_ids": padded_inputs, 
-        "labels": padded_labels
+        "input_ids": padded_inputs,
+        "labels": padded_labels,
+        "case_ids": padded_case_ids
     }
 
 
@@ -175,13 +182,14 @@ def main():
     config.num_classes = len(train_dataset.tag2idx)
 
     model = blstm(
-        vocab_size=config.vocab_size, 
-        embed_size=config.embed_size, 
-        hidden_size=config.hidden_size, 
-        output_size=config.output_size, 
+        vocab_size=config.vocab_size,
+        embed_size=config.embed_size,
+        hidden_size=config.hidden_size,
+        output_size=config.output_size,
         num_classes=config.num_classes,
-        num_layers=config.num_layers, 
-        dropout=config.dropout
+        num_layers=config.num_layers,
+        dropout=config.dropout,
+        case_embed_size=config.case_embed_size,
     )
 
     # check if we need to build with glove embeddings

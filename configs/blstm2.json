@@ -11,16 +11,17 @@
         "output_size": 128,
         "num_classes": 9,
         "num_layers": 1,
-        "dropout": 0.33
+        "dropout": 0.33,
+        "case_embed_size": 5
     },
     "training": {
-        "batch_size": 32,
-        "epochs": 50,
+        "batch_size": 16,
+        "epochs": 25,
         "lr": 1e-3,
         "momentum": 0.9,
         "val_iter": 2,
         "optimizer": "adam",
         "use_glove": true,
-        "lr_factor": 0.3 
+        "lr_factor": 0.5
     }
 }

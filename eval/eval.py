@@ -47,5 +47,5 @@ with open(pred, 'r') as prf, open(gold, 'r') as grf, open(tmp, 'w') as writer:
         writer.write(gidx + " " + gword + " " + glabel + " " + plabel)
         writer.write('\n')
 
-script = 'conll03eval'
+script = 'eval/conll03eval'
 os.system("perl %s < %s" % (script, tmp))
