@@ -17,7 +17,8 @@
         "num_classes": 9,
         "num_layers": 1,
         "num_cnn_layers": 1,
-        "dropout": 0.5
+        "dropout": 0.5,
+        "case_embed_size": 5
     },
     "training": {
         "batch_size": 10,

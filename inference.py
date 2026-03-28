@@ -33,15 +33,18 @@ def collate_fn_cnn(batch, pad_idx, label_pad_idx):
     inputs = [item[0] for item in batch]
     char_ids = [item[1] for item in batch]
     labels = [item[2] for item in batch]
+    case_ids = [item[3] for item in batch]
 
     padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=pad_idx)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=label_pad_idx)
     padded_chars = pad_sequence(char_ids, batch_first=True, padding_value=0)
+    padded_case_ids = pad_sequence(case_ids, batch_first=True, padding_value=0)
 
     return {
         "input_ids": padded_inputs,
         "char_ids": padded_chars,
         "labels": padded_labels,
+        "case_ids": padded_case_ids,
     }
 
 
@@ -59,8 +62,9 @@ def run_inference(model, dataset, collate, device, output_path, pad_idx, eval_f1
 
             if use_crf:
                 char_ids = batch["char_ids"].to(device)
+                case_ids = batch["case_ids"].to(device)
                 mask = tag_labels != -1
-                emissions = model(input_ids, char_ids, mask)
+                emissions = model(input_ids, char_ids, mask, case_ids=case_ids)
                 pred_paths = model.decode(emissions, mask)
                 for preds_seq, labels_row, m in zip(pred_paths, tag_labels, mask):
                     all_preds.append(preds_seq)
@@ -169,6 +173,7 @@ def main():
             num_layers=config.num_layers,
             dropout=config.dropout,
             num_cnn_layers=config.num_cnn_layers,
+            case_embed_size=config.case_embed_size,
         )
         my_collate = partial(collate_fn_cnn, pad_idx=pad_idx, label_pad_idx=LABEL_PAD)
     else:

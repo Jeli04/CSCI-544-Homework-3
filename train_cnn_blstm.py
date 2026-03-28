@@ -41,6 +41,7 @@ class TrainConfig:
     num_layers: int = 1
     num_cnn_layers: int = 1
     dropout: float = 0.33
+    case_embed_size: int = 0
 
     # training 
     batch_size: int = 16
@@ -80,10 +81,11 @@ def train_model(model, train_dataloader, test_dataloader, config: TrainConfig, d
             input_ids = batch['input_ids'].to(device)
             char_ids = batch['char_ids'].to(device)
             tag_labels = batch['labels'].to(device)
+            case_ids = batch['case_ids'].to(device)
             mask = tag_labels != -1
 
             optimizer.zero_grad()
-            emissions = model(input_ids, char_ids, mask)
+            emissions = model(input_ids, char_ids, mask, case_ids=case_ids)
             loss = model.crf_loss(emissions, tag_labels, mask)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
@@ -107,9 +109,10 @@ def train_model(model, train_dataloader, test_dataloader, config: TrainConfig, d
                     input_ids = batch['input_ids'].to(device)
                     char_ids = batch['char_ids'].to(device)
                     tag_labels = batch['labels'].to(device)
+                    case_ids = batch['case_ids'].to(device)
                     mask = tag_labels != -1
 
-                    emissions = model(input_ids, char_ids, mask)
+                    emissions = model(input_ids, char_ids, mask, case_ids=case_ids)
                     loss = model.crf_loss(emissions, tag_labels, mask)
                     val_loss += loss.item()
                     val_batches += 1
@@ -134,15 +137,18 @@ def collate_fn(batch, pad_idx, label_pad_idx):
     inputs = [item[0] for item in batch]
     char_ids = [item[1] for item in batch]
     labels = [item[2] for item in batch]
+    case_ids = [item[3] for item in batch]
 
     padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=pad_idx)
     padded_labels = pad_sequence(labels, batch_first=True, padding_value=label_pad_idx)
     padded_chars = pad_sequence(char_ids, batch_first=True, padding_value=0)
+    padded_case_ids = pad_sequence(case_ids, batch_first=True, padding_value=0)
 
     return {
         "input_ids": padded_inputs,
         "char_ids": padded_chars,
-        "labels": padded_labels
+        "labels": padded_labels,
+        "case_ids": padded_case_ids,
     }
 
 
@@ -195,6 +201,7 @@ def main():
         num_layers=config.num_layers,
         dropout=config.dropout,
         num_cnn_layers=config.num_cnn_layers,
+        case_embed_size=config.case_embed_size,
     )
 
     # check if we need to build with glove embeddings

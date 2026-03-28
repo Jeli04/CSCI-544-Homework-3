@@ -18,12 +18,18 @@ class blstm_cnn(nn.Module):
             dropout: float = 0.1,
             padding_idx: int = 0,
             num_cnn_layers: int = 1,
+            case_embed_size: int = 0,
+            num_case_types: int = 5,
     ):
         super().__init__()
         self.num_classes = num_classes
+        self.case_embed_size = case_embed_size
 
         self.char_embedding = nn.Embedding(char_vocab_size, char_embed_size, padding_idx=padding_idx)
         self.word_embedding = nn.Embedding(word_vocab_size, word_embed_size)
+
+        if case_embed_size > 0:
+            self.case_embed = nn.Embedding(num_case_types, case_embed_size)
 
         cnn_layers = []
         in_channels = char_embed_size
@@ -34,7 +40,7 @@ class blstm_cnn(nn.Module):
         self.char_dropout = nn.Dropout(dropout)
         self.conv = nn.Sequential(*cnn_layers)
 
-        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(embed_size + case_embed_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
         self.dropout = nn.Dropout(dropout)
 
         self.head = nn.Sequential(
@@ -50,7 +56,7 @@ class blstm_cnn(nn.Module):
         self.transitions.data[self.START_TAG, :] = -10000.0
         self.transitions.data[:, self.STOP_TAG] = -10000.0
 
-    def forward(self, word_ids, char_ids, mask):
+    def forward(self, word_ids, char_ids, mask, case_ids=None):
         B, L, W = char_ids.shape
         char_ids = char_ids.reshape(B*L, W)
 
@@ -62,7 +68,10 @@ class blstm_cnn(nn.Module):
         char_x = char_x.view(B, L, -1)  # (B, L, num_filters)
 
         word_embeds = self.word_embedding(word_ids)
-        x = torch.cat([char_x, word_embeds], dim=-1)
+        parts = [char_x, word_embeds]
+        if self.case_embed_size > 0 and case_ids is not None:
+            parts.append(self.case_embed(case_ids))
+        x = torch.cat(parts, dim=-1)
 
         x, (h_n, c_n) = self.lstm(x)
         x = self.dropout(x)
