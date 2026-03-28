@@ -21,19 +21,22 @@ def build_embedding(word2idx, word2vec, embed_dim):
         if word in word2vec:
             matrix[idx] = word2vec[word]
             found += 1
+        elif word.lower() in word2vec:
+            matrix[idx] = word2vec[word.lower()]
+            found += 1
         else:
             matrix[idx] = np.random.normal(scale=0.6, size=(embed_dim,))
-    # print(f"GloVe coverage: {found}/{len(word2idx)} ({100*found/len(word2idx):.1f}%)")
-    embedding = nn.Embedding.from_pretrained(torch.tensor(matrix), padding_idx=len(word2idx))
+    print(f"GloVe coverage: {found}/{len(word2idx)} ({100*found/len(word2idx):.1f}%)")
+    embedding = nn.Embedding.from_pretrained(torch.tensor(matrix), padding_idx=len(word2idx), freeze=False)
     return embedding
 
 if __name__ == "__main__":
     from dataset import NERDataset
 
-    glove_path = "/Users/jerryli/Desktop/CSCI544/HW3 2/glove.6B.100d.gz"
+    glove_path = "glove.6B.100d.gz"
     word2vec = load_glove(glove_path)
     print(f"Loaded {len(word2vec)} words, dim={len(next(iter(word2vec.values())))}")
 
-    dataset = NERDataset("/Users/jerryli/Desktop/CSCI544/HW3 2/data/train")
+    dataset = NERDataset("data/train")
     embedding = build_embedding(dataset.word2idx, word2vec, embed_dim=100)
     print(f"Embedding shape: {embedding.weight.shape}")

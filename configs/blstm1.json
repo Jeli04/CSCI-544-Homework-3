@@ -1,0 +1,26 @@
+{
+    "data": {
+        "train_dir": "data/train",
+        "dev_dir": "data/dev",
+        "test_dir": "data/test"
+    },
+    "model": {
+        "vocab_size": 100,
+        "embed_size": 100,
+        "hidden_size": 256,
+        "output_size": 128,
+        "num_classes": 9,
+        "num_layers": 1,
+        "dropout": 0.33
+    },
+    "training": {
+        "batch_size": 16,
+        "epochs": 25,
+        "lr": 0.1,
+        "momentum": 0.9,
+        "val_iter": 2,
+        "optimizer": "sgd",
+        "use_glove": false,
+        "lr_factor": 0.1
+    }
+}

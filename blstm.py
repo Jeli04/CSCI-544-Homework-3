@@ -10,15 +10,16 @@ class blstm(nn.Module):
             num_classes,
             num_layers=1,
             dropout=0.1,
-            embeddings=None
         ):
         super().__init__()
-        self.embed = nn.Embedding(vocab_size, embed_size) if embeddings is None else embeddings
+        self.embed = nn.Embedding(vocab_size, embed_size)
 
-        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, dropout=dropout, batch_first=True)
+        self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, dropout=dropout, batch_first=True, bidirectional=True)
+        
+        self.dropout = nn.Dropout(dropout)
 
         self.head = nn.Sequential(
-            nn.Linear(hidden_size, output_size),  
+            nn.Linear(hidden_size*2, output_size),     # we need the *2 for a blstm
             nn.ELU(),
             nn.Linear(output_size, num_classes)
         )
@@ -27,6 +28,8 @@ class blstm(nn.Module):
         x = self.embed(x)
 
         x, (h_n, c_n) = self.lstm(x)
+
+        x = self.dropout(x) # dropout not applied when lstm layer = 1
 
         x = self.head(x)
 
