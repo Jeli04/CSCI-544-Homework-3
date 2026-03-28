@@ -56,7 +56,7 @@ python inference.py --checkpoint blstm2.pt --config blstm2.json
 
 Run inference for Bonus (CNN-BiLSTM-CRF):
 ```bash
-python inference.py --checkpoint blstm_cnn.pt --config cnn_blstm.json
+python inference.py --checkpoint models/blstm_cnn.pt --config configs/cnn_blstm.json --model cnn_blstm
 ```
 
 Outputs: `dev.out`, `test.out`. Make sure to properly rename.
